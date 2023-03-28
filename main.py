@@ -162,16 +162,14 @@ def parse_input_string(input_string):
 
 
 def constr(items, text):
-    value = parse_input_string(text)
-    print(value[0][0])
-    print(value[1][0])
-    if value[0][0] == 'NOT' & value[1][0] == 'NOT':
-        print('Hmm')
-        if any(item == 'wine' for item in items) & any(item == 'ice-cream' for item in items):
-            print('kek')
-            return True
-
+    sub_expressions = text.split('\n')
+    for sub_expr in sub_expressions:
+        value = parse_input_string(sub_expr)
+        if value[0][0] == 'NOT' and value[1][0] == 'NOT':
+            if any(item == 'wine' for item in items) and any(item == 'ice-cream' for item in items):
+                return True
     return False
+
 
 
 def create_table(parsed_data, table_frame):
