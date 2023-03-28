@@ -166,7 +166,16 @@ def constr(items, text):
     for sub_expr in sub_expressions:
         value = parse_input_string(sub_expr)
         if value[0][0] == 'NOT' and value[1][0] == 'NOT':
-            if any(item == 'wine' for item in items) and any(item == 'ice-cream' for item in items):
+            if any(item == value[0][1] for item in items) and any(item == value[1][1] for item in items):
+                return True
+        elif value[0][0] == '+' and value[1][0] == 'NOT':
+            if any(item != value[0][1] for item in items) and any(item == value[1][1] for item in items):
+                return True
+        elif value[0][0] == 'NOT' and value[1][0] == '+':
+            if any(item == value[0][1] for item in items) and any(item != value[1][1] for item in items):
+                return True
+        elif value[0][0] == '+' and value[1][0] == '+':
+            if any(item != value[0][1] for item in items) and any(item != value[1][1] for item in items):
                 return True
     return False
 
