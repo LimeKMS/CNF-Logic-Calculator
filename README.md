@@ -1,2 +1,0 @@
-# Equals
-Debate civilly 
