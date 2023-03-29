@@ -2,7 +2,7 @@ from tkinter import *
 from tkinter.ttk import *
 import re
 import itertools
-
+from solvers import *
 
 class Case:
     instance = None
@@ -14,16 +14,16 @@ class Case:
 
     def __init__(self, fileName=None):
         self.name = ""
-        self.attributes = ""
-        self.constraints = ""
+        self.attributes = {}
+        self.constraints = None
         self.penalty = ""
         self.possibility = ""
         self.quality = ""
         if fileName is not None:
             file_addr = '{}/attributes.txt'.format(fileName)
-            attr = read_file(file_addr)
+            attr = parse_attr(read_file(file_addr))
             file_addr = '{}/constraints.txt'.format(fileName)
-            constraints = read_file(file_addr)
+            constraints = parse_constraints_into_cnf(read_file(file_addr), attr)
 
             file_addr = '{}/penaltylogic.txt'.format(fileName)
             penalty = read_file(file_addr)
@@ -41,8 +41,8 @@ class Case:
 
     def null(self):
         self.name = ""
-        self.attributes = ""
-        self.constraints = ""
+        self.attributes = {}
+        self.constraints = None
         self.penalty = ""
         self.possibility = ""
         self.quality = ""
@@ -87,7 +87,8 @@ def file_retrieve_input(self, textBox):
         case.__init__(inputValue)
         text_label = Label(self, text="Accepted!", width=40, font=("TkDefaultFont", 8))
         text_label.place(x=255, y=50)
-    except:
+    except Exception as e:
+        print(repr(e))
         text_label = Label(self, text="Error with file or could not find file!", width=40, font=("TkDefaultFont", 8))
         text_label.place(x=255, y=50)
 
@@ -184,7 +185,7 @@ def constr(items, text):
 def create_table(parsed_data, table_frame):
     num_columns = len(parsed_data) + 1
     table = Treeview(table_frame, columns=[f'column{i}' for i in range(1, num_columns + 1)], show='headings')
-
+    print(parsed_data)
     # add columns to the table
     table.heading('column1', text='Obj')
     table.column('column1', width=10, minwidth=0)
@@ -195,12 +196,10 @@ def create_table(parsed_data, table_frame):
 
     # add rows to the table
     row_idx = 0
-    for items in itertools.product(*parsed_data.values()):
+    for items in generate_possible_objects(case.constraints, case.attributes):
         obj_name = f'O. {row_idx}'
         row_idx += 1
-        if constr(items, case.constraints):
-            continue
-        table.insert('', 'end', values=(obj_name,) + items)
+        table.insert('', 'end', values=[obj_name] + items)
 
     return table
 
@@ -221,29 +220,6 @@ class OutputPage(Frame):
 
             # create a frame to hold the table
             table_frame = Frame(self)
-
-            '''num_columns = len(array) + 1
-            # create the Treeview widget with the frame as its parent
-            table = Treeview(table_frame, columns=[f'column{i}' for i in range(1, num_columns+1)], show='headings')
-
-            # add columns to the table
-            table.heading('column1', text='Obj')
-            table.column('column1', width=10, minwidth=0)
-            table.heading('column2', text='')
-            table.column('column2', width=10, minwidth=0)
-            table.heading('column3', text='')
-            table.column('column3', width=10, minwidth=0)
-
-            # add rows to the table
-            table.insert('', 'end', values=('O. 0', array[2][1][1], array[1][1][1], array[0][1][1]))
-            table.insert('', 'end', values=('O. 1', array[2][1][1], array[1][1][1], array[0][1][0]))
-            table.insert('', 'end', values=('0. 2', array[2][1][1], array[1][1][0], array[0][1][1]))
-            table.insert('', 'end', values=('0. 3', array[2][1][1], array[1][1][0], array[0][1][0]))
-            table.insert('', 'end', values=('O. 4', array[2][1][0], array[1][1][1], array[0][1][1]))
-            table.insert('', 'end', values=('O. 5', array[2][1][0], array[1][1][1], array[0][1][0]))
-            table.insert('', 'end', values=('0. 6', array[2][1][0], array[1][1][0], array[0][1][1]))
-            table.insert('', 'end', values=('0. 7', array[2][1][0], array[1][1][0], array[0][1][0]))
-            '''
 
             parsed_data = parse_text(case.attributes)
             table = create_table(parsed_data, table_frame)
