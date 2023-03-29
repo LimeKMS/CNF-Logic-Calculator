@@ -161,6 +161,38 @@ def parse_input_string(input_string):
     return parsed
 
 
+def parse_penalty(text):
+    input_lines = text.strip().split('\n')
+    parsed_input = []
+    for line in input_lines:
+        items = line.split(',', 1)
+        if len(items) == 2:
+            first, second = items
+            first_items = first.split()
+            if len(first_items) >= 3 and first_items[1] in ['AND', 'OR']:
+                operator = first_items[1]
+                parsed_input.append([first_items[0], operator, ' '.join(first_items[2:]), int(second.strip())])
+    return parsed_input
+
+
+def parse_poss(text):
+    input_lines = text.strip().split('\n')
+    parsed_input = []
+    for line in input_lines:
+        items = line.split(',', 1)
+        if len(items) == 2:
+            first, second = items
+            first_items = first.split()
+            if len(first_items) >= 3 and first_items[1] in ['AND', 'OR']:
+                operator = first_items[1]
+                try:
+                    value = float(second.strip())
+                except ValueError:
+                    value = int(second.strip())
+                parsed_input.append([first_items[0], operator, ' '.join(first_items[2:]), value])
+    return parsed_input
+
+
 def constr(items, text):
     sub_expressions = text.split('\n')
     for sub_expr in sub_expressions:
@@ -178,7 +210,6 @@ def constr(items, text):
             if any(item != value[0][1] for item in items) and any(item != value[1][1] for item in items):
                 return True
     return False
-
 
 
 def create_table(parsed_data, table_frame):
@@ -205,6 +236,180 @@ def create_table(parsed_data, table_frame):
     return table
 
 
+def preference_calc(item, pref):
+    if pref[1] == "AND":
+        if pref[0] in item and pref[2] in item:
+            return True
+        else:
+            return False
+    elif pref[1] == "OR":
+        if pref[0] in item or pref[2] in item:
+            return True
+        else:
+            return False
+    elif pref[1] == "AND NOT":
+        if pref[0] in item and pref[2] not in item:
+            return True
+        else:
+            return False
+    elif pref[1] == "OR NOT":
+        if pref[0] in item or pref[2] not in item:
+            return True
+        else:
+            return False
+    else:
+        return False
+
+
+def create_pen_table(parsed_data, table_frame, table):
+    num_pens = len(parsed_data)
+    num_columns = num_pens + 2
+    newTable = Treeview(table_frame, columns=[f'column{i}' for i in range(1, num_columns + 1)], show='headings')
+
+    # add columns to the table
+    newTable.heading('column1', text='Obj')
+    newTable.column('column1', width=50, minwidth=50)
+
+    for i in range(1, num_pens + 1):
+        column_name = f'pref{i}'
+        column = f'column{i + 1}'
+        newTable.heading(column, text=column_name)
+        newTable.column(column, width=50, minwidth=50)
+
+    newTable.heading(f'column{num_columns}', text='Total')
+    newTable.column(f'column{num_columns}', width=50, minwidth=50)
+
+    # add rows to the table
+    for item in table.get_children():
+        obj = table.item(item, "values")[0]
+        pen_values = []
+        for pref in parsed_data:
+            if preference_calc(table.item(item, "values"), pref):
+                pref_val = pref[3]
+            else:
+                pref_val = 0
+            pen_values.append(pref_val)
+        total = sum(pen_values)
+        newTable.insert("", "end", values=[obj] + pen_values + [total])
+
+    return newTable
+
+
+def create_poss_table(parsed_data, table_frame, table):
+    num_pens = len(parsed_data)
+    num_columns = num_pens + 2
+    newTable = Treeview(table_frame, columns=[f'column{i}' for i in range(1, num_columns + 1)], show='headings')
+
+    # add columns to the table
+    newTable.heading('column1', text='Obj')
+    newTable.column('column1', width=50, minwidth=50)
+
+    for i in range(1, num_pens + 1):
+        column_name = f'pref{i}'
+        column = f'column{i + 1}'
+        newTable.heading(column, text=column_name)
+        newTable.column(column, width=50, minwidth=50)
+
+    newTable.heading(f'column{num_columns}', text='Tolerance')
+    newTable.column(f'column{num_columns}', width=50, minwidth=50)
+
+    # add rows to the table
+    #print(table[1][0])
+    for item in table.get_children():
+        obj = table.item(item, "values")[0]
+        pen_values = []
+        for pref in parsed_data:
+            if preference_calc(table.item(item, "values"), pref):
+                pref_val = round(1.0 - pref[3], ndigits=1)
+            else:
+                pref_val = 1
+            pen_values.append(pref_val)
+        total = min(pen_values)  # change total
+        newTable.insert("", "end", values=[obj] + pen_values + [total])
+
+    return newTable
+
+
+def opt_pen_table(parsed_data, table_frame, table, pen_table):
+    num_columns = len(parsed_data) + 2
+    newTable = Treeview(table_frame, columns=[f'column{i}' for i in range(1, num_columns + 1)], show='headings')
+
+    # add columns to the table
+    newTable.heading('column1', text='Obj')
+    newTable.column('column1', width=10, minwidth=0)
+    for i, category in enumerate(parsed_data.keys()):
+        column_name = f'column{i + 2}'
+        newTable.heading(column_name, text=category)
+        newTable.column(column_name, width=10, minwidth=0)
+
+    newTable.heading(f'column{num_columns}', text='Total')
+    newTable.column(f'column{num_columns}', width=20, minwidth=0)
+
+    # find item with lowest penalty value
+    try:
+        min_value = float('inf')
+        min_item = None
+        for item in pen_table.get_children():
+            values = pen_table.item(item, "values")
+            penalty = float(values[-1])  # convert to float
+            if penalty <= min_value:
+                min_value = penalty
+                min_item = item
+        if min_item:
+            obj = pen_table.item(min_item, "values")[0]
+            for item in table.get_children():
+                if obj in table.item(item, "values"):
+                    row_values = list(table.item(item, "values"))
+                    row_values.append(int(min_value))
+                    newTable.insert("", "end", values=tuple(row_values))
+        else:
+            obj = ''
+    except Exception as e:
+        print(f"Error: {e}")
+
+    return newTable
+
+
+def opt_poss_table(parsed_data, table_frame, table, poss_table):
+    num_columns = len(parsed_data) + 2
+    newTable = Treeview(table_frame, columns=[f'column{i}' for i in range(1, num_columns + 1)], show='headings')
+
+    # add columns to the table
+    newTable.heading('column1', text='Obj')
+    newTable.column('column1', width=10, minwidth=0)
+    for i, category in enumerate(parsed_data.keys()):
+        column_name = f'column{i + 2}'
+        newTable.heading(column_name, text=category)
+        newTable.column(column_name, width=10, minwidth=0)
+
+    newTable.heading(f'column{num_columns}', text='Total')
+    newTable.column(f'column{num_columns}', width=20, minwidth=0)
+
+    # find item with highest float value
+    try:
+        min_value = float('-inf')
+        min_item = None
+        for item in poss_table.get_children():
+            values = poss_table.item(item, "values")
+            penalty = float(values[-1])
+            if penalty >= min_value:
+                min_value = penalty
+                min_item = item
+        if min_item:
+            obj = poss_table.item(min_item, "values")[0]
+            for item in table.get_children():
+                if obj in table.item(item, "values"):
+                    row_values = list(table.item(item, "values"))
+                    row_values.append(min_value)
+                    newTable.insert("", "end", values=tuple(row_values))
+        else:
+            obj = ''
+    except Exception as e:
+        print(f"Error: {e}")
+
+    return newTable
+
+
 class OutputPage(Frame):
     def __init__(self, parent):
         super().__init__(parent)
@@ -222,35 +427,46 @@ class OutputPage(Frame):
             # create a frame to hold the table
             table_frame = Frame(self)
 
-            '''num_columns = len(array) + 1
-            # create the Treeview widget with the frame as its parent
-            table = Treeview(table_frame, columns=[f'column{i}' for i in range(1, num_columns+1)], show='headings')
-
-            # add columns to the table
-            table.heading('column1', text='Obj')
-            table.column('column1', width=10, minwidth=0)
-            table.heading('column2', text='')
-            table.column('column2', width=10, minwidth=0)
-            table.heading('column3', text='')
-            table.column('column3', width=10, minwidth=0)
-
-            # add rows to the table
-            table.insert('', 'end', values=('O. 0', array[2][1][1], array[1][1][1], array[0][1][1]))
-            table.insert('', 'end', values=('O. 1', array[2][1][1], array[1][1][1], array[0][1][0]))
-            table.insert('', 'end', values=('0. 2', array[2][1][1], array[1][1][0], array[0][1][1]))
-            table.insert('', 'end', values=('0. 3', array[2][1][1], array[1][1][0], array[0][1][0]))
-            table.insert('', 'end', values=('O. 4', array[2][1][0], array[1][1][1], array[0][1][1]))
-            table.insert('', 'end', values=('O. 5', array[2][1][0], array[1][1][1], array[0][1][0]))
-            table.insert('', 'end', values=('0. 6', array[2][1][0], array[1][1][0], array[0][1][1]))
-            table.insert('', 'end', values=('0. 7', array[2][1][0], array[1][1][0], array[0][1][0]))
-            '''
-
             parsed_data = parse_text(case.attributes)
             table = create_table(parsed_data, table_frame)
-
             # position the table inside the frame
             table_frame.place(x=10, y=65, width=500, height=200)
             table.place(relwidth=1, relheight=1)
+
+            #penalty table
+            text_label2 = Label(self, text="Penalty Logic Table:", width=20, font=("TkDefaultFont", 14))
+            text_label2.place(x=522, y=40)
+            table_frame2 = Frame(self)
+            parsed_pen = parse_penalty(case.penalty)
+            table2 = create_pen_table(parsed_pen, table_frame2, table)
+            table_frame2.place(x=520, y=65, width=500, height=200)
+            table2.place(relwidth=1, relheight=1)
+
+            #Possibilistic Table
+            text_label3 = Label(self, text="Possibilitic Logic Table:", width=20, font=("TkDefaultFont", 14))
+            text_label3.place(x=1032, y=40)
+            table_frame3 = Frame(self)
+            parsed_poss = parse_poss(case.possibility)
+            table3 = create_poss_table(parsed_poss, table_frame3, table) #parsed penalty needs to be replace
+            table_frame3.place(x=1030, y=65, width=500, height=200)
+            table3.place(relwidth=1, relheight=1)
+
+            # Optimal Objects (Penalty)
+            text_label4 = Label(self, text="Penalty Optimal Object(s):", width=20, font=("TkDefaultFont", 12))
+            text_label4.place(x=522, y=270)
+            table_frame4 = Frame(self)
+            table4 = opt_pen_table(parsed_data, table_frame4, table, table2)
+            table_frame4.place(x=520, y=295, width=500, height=150)
+            table4.place(relwidth=1, relheight=1)
+
+            # Optimal Objects (Poss)
+            text_label5 = Label(self, text="Possibilitic Optimal Object(s):", width=30, font=("TkDefaultFont", 12))
+            text_label5.place(x=1032, y=270)
+            table_frame5 = Frame(self)
+            print(table3.get_children())
+            table5 = opt_poss_table(parsed_data, table_frame5, table, table3)
+            table_frame5.place(x=1030, y=295, width=500, height=150)
+            table5.place(relwidth=1, relheight=1)
 
 
         except:
