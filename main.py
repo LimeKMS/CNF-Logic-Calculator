@@ -193,6 +193,22 @@ def parse_poss(text):
     return parsed_input
 
 
+def parse_choice(text):
+    # Split text into lines and remove empty lines
+    lines = filter(lambda x: x.strip(), text.split("\n"))
+
+    # Split each line into tokens
+    tokens_list = [line.split() for line in lines]
+
+    # Remove "IF" from the end of lines that end with it
+    for tokens in tokens_list:
+        if len(tokens) > 1 and tokens[-1] == "IF":
+            tokens.pop(-1)
+
+    # Return the list of tokens for each line
+    return tokens_list
+
+
 def constr(items, text):
     sub_expressions = text.split('\n')
     for sub_expr in sub_expressions:
@@ -314,7 +330,6 @@ def create_poss_table(parsed_data, table_frame, table):
     newTable.column(f'column{num_columns}', width=50, minwidth=50)
 
     # add rows to the table
-    #print(table[1][0])
     for item in table.get_children():
         obj = table.item(item, "values")[0]
         pen_values = []
@@ -326,6 +341,46 @@ def create_poss_table(parsed_data, table_frame, table):
             pen_values.append(pref_val)
         total = min(pen_values)  # change total
         newTable.insert("", "end", values=[obj] + pen_values + [total])
+
+    return newTable
+
+
+def create_choice_table(parsed_data, table_frame, table):
+    num_pens = len(parsed_data)
+    num_columns = num_pens + 2
+    newTable = Treeview(table_frame, columns=[f'column{i}' for i in range(1, num_columns + 1)], show='headings')
+
+    # add columns to the table
+    newTable.heading('column1', text='Obj')
+    newTable.column('column1', width=50, minwidth=50)
+
+    for i in range(1, num_pens + 1):
+        column_name = f'pref{i}'
+        column = f'column{i + 1}'
+        newTable.heading(column, text=column_name)
+        newTable.column(column, width=50, minwidth=50)
+
+    for item in table.get_children():
+        obj = table.item(item, "values")[0]
+        qual_values = []
+        for pref in parsed_data:
+            if 'IF' not in pref:
+                if pref[0] in table.item(item, "values"):
+                    qual_values.append(1)
+                else:
+                    qual_values.append(2)
+            else:
+                if pref[pref.index('IF') + 1] not in table.item(item, "values"):
+                    qual_values.append('INF')
+                else:
+                    if pref[0] in table.item(item, "values"):
+                        qual_values.append(1)
+                    elif pref[2] in table.item(item, "values"):
+                        qual_values.append(2)
+                    else:
+                        qual_values.append('INF')
+
+        newTable.insert("", "end", values=[obj] + qual_values)
 
     return newTable
 
@@ -410,6 +465,42 @@ def opt_poss_table(parsed_data, table_frame, table, poss_table):
     return newTable
 
 
+def opt_choice_table(parsed_data, table_frame, table, choice_table):
+    num_columns = len(parsed_data) + 2
+    newTable = Treeview(table_frame, columns=[f'column{i}' for i in range(1, num_columns + 1)], show='headings')
+
+    # add columns to the table
+    newTable.heading('column1', text='Obj')
+    newTable.column('column1', width=10, minwidth=0)
+    for i, category in enumerate(parsed_data.keys()):
+        column_name = f'column{i + 2}'
+        newTable.heading(column_name, text=category)
+        newTable.column(column_name, width=10, minwidth=0)
+
+    newTable.heading(f'column{num_columns}', text='Total 1s')
+    newTable.column(f'column{num_columns}', width=20, minwidth=0)
+
+    try:
+        max_count = 0
+        result = []
+
+        for item in choice_table.get_children():
+            values = choice_table.item(item, "values")
+            count = sum(1 for v in values[1:] if v == 1)  # count number of columns with value 1
+            if count > max_count:
+                max_count = count
+                result = [values[0]]
+            elif count == max_count:
+                result.append(values[0])
+        else:
+            obj = ''
+    except Exception as e:
+        print(f"Error: {e}")
+    print(result)
+
+    return newTable
+
+
 class OutputPage(Frame):
     def __init__(self, parent):
         super().__init__(parent)
@@ -463,13 +554,30 @@ class OutputPage(Frame):
             text_label5 = Label(self, text="Possibilitic Optimal Object(s):", width=30, font=("TkDefaultFont", 12))
             text_label5.place(x=1032, y=270)
             table_frame5 = Frame(self)
-            print(table3.get_children())
             table5 = opt_poss_table(parsed_data, table_frame5, table, table3)
             table_frame5.place(x=1030, y=295, width=500, height=150)
             table5.place(relwidth=1, relheight=1)
 
+            # Qualilative logic
+            text_label6 = Label(self, text="Qualitative Logic:", width=20, font=("TkDefaultFont", 12))
+            text_label6.place(x=12, y=270)
+            table_frame6 = Frame(self)
+            parsed_choice = parse_choice(case.quality)
+            table6 = create_choice_table(parsed_choice, table_frame6, table)
+            table_frame6.place(x=10, y=295, width=500, height=150)
+            table6.place(relwidth=1, relheight=1)
 
-        except:
+            #Qualilative Optiminal
+            text_label7 = Label(self, text="Qualitative Optimal:", width=20, font=("TkDefaultFont", 12))
+            text_label7.place(x=12, y=460)
+            table_frame7 = Frame(self)
+            table7 = opt_choice_table(parsed_data, table_frame7, table, table6)
+            table_frame7.place(x=10, y=485, width=500, height=200)
+            table7.place(relwidth=1, relheight=1)
+
+        except Exception as e:
+
+            print(f"Error: {e}")
             #Possible Table
             text_label1 = Label(self, text="Possible Objects:", width=20, font=("TkDefaultFont", 14))
             text_label1.place(x=12, y=40)
@@ -533,6 +641,8 @@ class OutputPage(Frame):
             table8 = Treeview(table_frame8, columns="column1", show='headings')
             table_frame8.place(x=520, y=485, width=500, height=200)
             table8.place(relwidth=1, relheight=1)
+
+
 
 
 
