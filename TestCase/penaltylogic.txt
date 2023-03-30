@@ -1,0 +1,3 @@
+fish AND wine, 10
+wine OR cake, 6
+coke OR fish, 1

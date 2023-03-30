@@ -1,0 +1,6 @@
+NOT wine OR NOT ice-cream
+NOT tom's OR NOT beef
+NOT fanta OR NOT salad
+NOT salad OR NOT spoon
+NOT wine OR NOT coke
+NOT fork OR NOT soup

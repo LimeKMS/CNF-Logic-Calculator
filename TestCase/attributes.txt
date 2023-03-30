@@ -1,1 +1,8 @@
-
+dessert: cake, ice-cream
+soda: coke, fanta
+drink: wine, beer
+main: fish, beef
+appetizer: soup, salad
+utensils: fork, spoon
+plate: hot, cold
+diner: tom's, mark's
