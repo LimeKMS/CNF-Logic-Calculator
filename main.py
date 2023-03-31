@@ -13,7 +13,7 @@ class Case:
             cls.instance = super().__new__(cls)
         return cls.instance
 
-    def __init__(self, fileName=None):
+    def __init__(self, fileName=None, Attr=None, Constr=None, Pen=None, Poss=None, Qual=None):
         self.name = ""
         self.attributes = ""
         self.constraints = ""
@@ -21,16 +21,16 @@ class Case:
         self.possibility = ""
         self.quality = ""
         if fileName is not None:
-            file_addr = '{}/attributes.txt'.format(fileName)
+            file_addr = '{}/{}'.format(fileName, Attr)
             attr = read_file(file_addr)
-            file_addr = '{}/constraints.txt'.format(fileName)
+            file_addr = '{}/{}'.format(fileName, Constr)
             constraints = read_file(file_addr)
 
-            file_addr = '{}/penaltylogic.txt'.format(fileName)
+            file_addr = '{}/{}'.format(fileName, Pen)
             penalty = read_file(file_addr)
-            file_addr = '{}/possibilisticlogic.txt'.format(fileName)
+            file_addr = '{}/{}'.format(fileName, Poss)
             possibilistic = read_file(file_addr)
-            file_addr = '{}/qualitativechoicelogic.txt'.format(fileName)
+            file_addr = '{}/{}'.format(fileName, Qual)
             qualitative = read_file(file_addr)
 
             self.name = fileName
@@ -81,11 +81,17 @@ def manual_retrieve_input(self, n, att, con, pen, pos, qual):
         text_label.place(x=1380, y=430)
 
 
-def file_retrieve_input(self, textBox):
+def file_retrieve_input(self, textBox, AttributeInput1, ConstraintsInput1, PenaltyInput1, PossibilisticInput1, QualitativeInput1):
     inputValue = textBox.get("1.0","end-1c")
+    Attr = AttributeInput1.get("1.0","end-1c")
+    Constr = ConstraintsInput1.get("1.0","end-1c")
+    Pen = PenaltyInput1.get("1.0","end-1c")
+    Poss = PossibilisticInput1.get("1.0","end-1c")
+    Qual = QualitativeInput1.get("1.0","end-1c")
+
     try:
         print(inputValue)
-        case.__init__(inputValue)
+        case.__init__(inputValue, Attr, Constr, Pen, Poss, Qual)
         text_label = Label(self, text="Accepted!", width=40, font=("TkDefaultFont", 8))
         text_label.place(x=255, y=50)
     except:
@@ -102,10 +108,35 @@ class InputPage(Frame):
         text_label.place(x=5, y=5)
         text_label = Label(self, text="Folder Name:", width=20, font=("TkDefaultFont", 12))
         text_label.place(x=10, y=30)
+
+        text_label = Label(self, text="Attributes:", width=20, font=("TkDefaultFont", 12))
+        text_label.place(x=10, y=90)
+        AttributeInput1 = Text(self, width=30, height=1)
+        AttributeInput1.place(x=10, y=112)
+        text_label = Label(self, text="Constraints:", width=20, font=("TkDefaultFont", 12))
+        text_label.place(x=10, y=140)
+        ConstraintsInput1 = Text(self, width=30, height=1)
+        ConstraintsInput1.place(x=10, y=162)
+        text_label = Label(self, text="Penalty:", width=20, font=("TkDefaultFont", 12))
+        text_label.place(x=10, y=190)
+        PenaltyInput1 = Text(self, width=30, height=1)
+        PenaltyInput1.place(x=10, y=222)
+        text_label = Label(self, text="Possibilistic:", width=20, font=("TkDefaultFont", 12))
+        text_label.place(x=10, y=240)
+        PossibilisticInput1 = Text(self, width=30, height=1)
+        PossibilisticInput1.place(x=10, y=262)
+        text_label = Label(self, text="Qualitative:", width=20, font=("TkDefaultFont", 12))
+        text_label.place(x=10, y=290)
+        QualitativeInput1 = Text(self, width=30, height=1)
+        QualitativeInput1.place(x=10, y=312)
+
+
         fileName = Text(self, width=20,height=1)
         fileName.place(x=10, y=52)
-        buttonCommit1 = Button(self, width=10, text="Commit",command=lambda: file_retrieve_input(self, fileName))
+        buttonCommit1 = Button(self, width=10, text="Commit",command=lambda: file_retrieve_input(self, fileName, AttributeInput1, ConstraintsInput1, PenaltyInput1, PossibilisticInput1, QualitativeInput1))
         buttonCommit1.place(x=180,y=50)
+
+
 
         #Manual Input
         text_label = Label(self, text="Manual Input", width=20, font=("TkDefaultFont", 14))
@@ -130,6 +161,7 @@ class InputPage(Frame):
         text_label.place(x=800, y=580)
         QualitativeInput = Text(self, width=30, height=6)
         QualitativeInput.place(x=800, y=602)
+
         newfileName = Text(self, width=20, height=1)
         text_label = Label(self, text="Case Name:", width=20, font=("TkDefaultFont", 12))
         text_label.place(x=1200, y=433)

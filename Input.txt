@@ -1,0 +1,6 @@
+ExampleCase
+attributes.txt
+constraints.txt
+penaltylogic.txt
+possibilisticlogic.txt
+qualitativechoicelogic.txt
