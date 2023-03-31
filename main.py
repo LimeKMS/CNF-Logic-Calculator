@@ -2,6 +2,7 @@ from tkinter import *
 from tkinter.ttk import *
 import re
 import itertools
+import random
 
 
 class Case:
@@ -226,6 +227,19 @@ def constr(items, text):
             if any(item != value[0][1] for item in items) and any(item != value[1][1] for item in items):
                 return True
     return False
+
+
+def returnOnes(choice_table, index):
+    counter = 0
+    try:
+        values = choice_table.item(choice_table.get_children()[index], "values")
+        counter = 0
+        for value in values:
+            if value == '1':
+                counter += 1
+    except:
+        counter = counter
+    return counter
 
 
 def create_table(parsed_data, table_frame):
@@ -480,25 +494,83 @@ def opt_choice_table(parsed_data, table_frame, table, choice_table):
     newTable.heading(f'column{num_columns}', text='Total 1s')
     newTable.column(f'column{num_columns}', width=20, minwidth=0)
 
+    # find item with highest float value
     try:
-        max_count = 0
-        result = []
-
+        min_value = float('-inf')
+        min_item = []
         for item in choice_table.get_children():
             values = choice_table.item(item, "values")
-            count = sum(1 for v in values[1:] if v == 1)  # count number of columns with value 1
-            if count > max_count:
-                max_count = count
-                result = [values[0]]
-            elif count == max_count:
-                result.append(values[0])
-        else:
-            obj = ''
+            counter = 0
+            for idx, value in enumerate(values):
+                if value == '1':
+                    counter += 1
+            if counter >= min_value:
+                min_value = counter
+                min_item.append(values[0])
+
+        for item in table.get_children():
+            values = table.item(item, "values")
+            if values[0] in min_item:
+                row_values = list(table.item(item, "values"))
+                row_values.append(min_value)
+                newTable.insert("", "end", values=tuple(row_values))
+
     except Exception as e:
         print(f"Error: {e}")
-    print(result)
 
     return newTable
+
+
+def exeplemp(table_frame, parsed_data, pen_table, poss_table, choice_table):
+    textbox = Text(table_frame, bg="white")
+    num_rows = len(pen_table.get_children())
+    random_int = random.randint(0, num_rows - 1)
+    random_int2 = random.randint(0, num_rows - 1)
+    while random_int == random_int2:
+        random_int2 = random.randint(0, num_rows - 1)
+
+    #penalty
+    row_values = [pen_table.item(pen_table.get_children()[random_int], "values")[0], pen_table.item(pen_table.get_children()[random_int], "values")[-1]]
+    row_values2 = [pen_table.item(pen_table.get_children()[random_int2], "values")[0],pen_table.item(pen_table.get_children()[random_int2], "values")[-1]]
+    number = '{:.0f}'.format(float(row_values[0].split()[1]))
+    number2 = '{:.0f}'.format(float(row_values2[0].split()[1]))
+    if(row_values[1] < row_values2[1]):
+        textbox.insert("end", f"Obj {number} is preferred to Obj {number2} because it has the penalty value: {row_values[1]} while Obj {number2} has the penalty value: {row_values2[1]}.")
+    elif row_values2[1] == row_values[1]:
+        textbox.insert("end", f"Obj {number} is equal in preference to Obj {number2} because they both have the penalty value: {row_values[1]}.")
+    else:
+        textbox.insert("end", f"Obj {number2} is preferred to Obj {number} because it has the penalty value: {row_values2[1]} while Obj {number} has the penalty value: {row_values[1]}.")
+    textbox.insert("end", "\n\n")
+
+    #poss table
+    row_values = [poss_table.item(poss_table.get_children()[random_int], "values")[0], poss_table.item(poss_table.get_children()[random_int], "values")[-1]]
+    row_values2 = [poss_table.item(poss_table.get_children()[random_int2], "values")[0],poss_table.item(poss_table.get_children()[random_int2], "values")[-1]]
+    number = '{:.0f}'.format(float(row_values[0].split()[1]))
+    number2 = '{:.0f}'.format(float(row_values2[0].split()[1]))
+    if(row_values[1] > row_values2[1]):
+        textbox.insert("end", f"Obj {number} is preferred to Obj {number2} because it has the tolerance value: {row_values[1]} while Obj {number2} has the tolerance value: {row_values2[1]}.")
+    elif row_values2[1] == row_values[1]:
+        textbox.insert("end", f"Obj {number} is equal in preference to Obj {number2} because they both have the tolerance value: {row_values[1]}.")
+    else:
+        textbox.insert("end", f"Obj {number2} is preferred to Obj {number} because it has the tolerance value: {row_values2[1]} while Obj {number} has the tolerance value: {row_values[1]}.")
+    textbox.insert("end", "\n\n")
+
+    # choice table
+    row_values = [choice_table.item(choice_table.get_children()[random_int], "values")[0], returnOnes(choice_table, random_int)]
+    row_values2 = [choice_table.item(choice_table.get_children()[random_int2], "values")[0], returnOnes(choice_table, random_int2)]
+    number = '{:.0f}'.format(float(row_values[0].split()[1]))
+    number2 = '{:.0f}'.format(float(row_values2[0].split()[1]))
+
+    if (row_values[1] > row_values2[1]):
+        textbox.insert("end",f"Obj {number} is preferred to Obj {number2} because it has the qualitative choice value: {row_values[1]} while Obj {number2} has the value: {row_values2[1]}.")
+    elif row_values2[1] == row_values[1]:
+        textbox.insert("end",f"Obj {number} is equal in preference to Obj {number2} because they both have the qualitative choice value: {row_values[1]}.")
+    else:
+        textbox.insert("end",f"Obj {number2} is preferred to Obj {number} because it has the qualitative choice value: {row_values2[1]} while Obj {number} has the value: {row_values[1]}.")
+    textbox.insert("end", "\n\n")
+
+
+    return textbox
 
 
 class OutputPage(Frame):
@@ -575,6 +647,14 @@ class OutputPage(Frame):
             table_frame7.place(x=10, y=485, width=500, height=200)
             table7.place(relwidth=1, relheight=1)
 
+            #Exemplification
+            text_label8 = Label(self, text="Exemplification:", width=20, font=("TkDefaultFont", 12))
+            text_label8.place(x=522, y=460)
+            table_frame8 = Frame(self)
+            table8 = exeplemp(table_frame8, parsed_data, table2, table3, table6)
+            table_frame8.place(x=520, y=485, width=500, height=200)
+            table8.place(relwidth=1, relheight=1)
+
         except Exception as e:
 
             print(f"Error: {e}")
@@ -638,7 +718,7 @@ class OutputPage(Frame):
             text_label8 = Label(self, text="Exemplification:", width=20, font=("TkDefaultFont", 12))
             text_label8.place(x=522, y=460)
             table_frame8 = Frame(self)
-            table8 = Treeview(table_frame8, columns="column1", show='headings')
+            table8 = Text(table_frame8, bg="white")
             table_frame8.place(x=520, y=485, width=500, height=200)
             table8.place(relwidth=1, relheight=1)
 
